@@ -55,10 +55,13 @@ class DetectionCheckpointer(Checkpointer):
                 path = None  # don't load if not readable
 
         if path:
+            orig_path = path
             parsed_url = urlparse(path)
             self._parsed_url_during_load = parsed_url
             path = parsed_url._replace(query="").geturl()  # remove query from filename
             path = self.path_manager.get_local_path(path)
+            if orig_path == path + '?dl=1':
+                path = orig_path
         ret = super().load(path, *args, **kwargs)
 
         if need_sync:
@@ -104,6 +107,7 @@ class DetectionCheckpointer(Checkpointer):
         queries = parse_qs(parsed_url.query)
         if queries.pop("matching_heuristics", "False") == ["True"]:
             loaded["matching_heuristics"] = True
+        queries.pop('dl', '')
         if len(queries) > 0:
             raise ValueError(
                 f"Unsupported query remaining: f{queries}, orginal filename: {parsed_url.geturl()}"
